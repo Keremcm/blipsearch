@@ -12,9 +12,9 @@
 
 ---
 
-<video src="https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.mp4" autoplay loop muted controls width="100%"></video>
+### 🎥 Watch it in Action!
 
-*(If the video preview doesn't load smoothly, [click here to download and view](https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.mp4))*
+![Blipsearch Demo](https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.mp4)
 
 ---
 
