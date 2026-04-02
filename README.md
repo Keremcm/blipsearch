@@ -18,15 +18,16 @@ Ensure you have Python 3.8+ installed on your system.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/blipsearch.git
+git clone https://github.com/Keremcm/blipsearch.git
 cd blipsearch
 ```
 
-2. Install it locally:
+2. Run the automated installer:
 ```bash
-pip install .
+chmod +x install.sh
+./install.sh
 ```
-*(Tip: Use `pip install -e .` if you plan to edit the source code so your changes apply immediately)*
+*(This creates an isolated virtual environment automatically without polluting your OS, and universally ties the `blipsearch` command!)*
 
 ## 💡 Usage
 
