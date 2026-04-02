@@ -39,30 +39,30 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS captions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            video_path TEXT,
+            media_path TEXT,
             timestamp_ms INTEGER,
             caption TEXT
         )
     ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS indexed_videos (
-            video_path TEXT PRIMARY KEY,
+            media_path TEXT PRIMARY KEY,
             last_modified REAL
         )
     ''')
     conn.commit()
     conn.close()
 
-def find_videos(root_dir):
-    video_extensions = {'.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm'}
-    video_paths = []
+def find_media(root_dir):
+    media_extensions = {'.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.jpg', '.jpeg', '.png', '.webp'}
+    media_paths = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
         dirnames[:] = [d for d in dirnames if not d.startswith('.') and d not in ['node_modules', 'venv', 'env', '__pycache__']]
         for f in filenames:
             ext = os.path.splitext(f)[1].lower()
-            if ext in video_extensions:
-                video_paths.append(os.path.join(dirpath, f))
-    return video_paths
+            if ext in media_extensions:
+                media_paths.append(os.path.join(dirpath, f))
+    return media_paths
 
 class BlipSearch:
     def __init__(self, model_id="Salesforce/blip-image-captioning-base"):
@@ -85,68 +85,82 @@ class BlipSearch:
         out = self.model.generate(**inputs, max_new_tokens=50) 
         return self.processor.decode(out[0], skip_special_tokens=True)
 
-    def index_new_videos(self, sample_rate_ms=2000):
+    def index_new_media(self, sample_rate_ms=2000):
         home_dir = os.path.expanduser("~")
-        all_videos = find_videos(home_dir)
+        all_media = find_media(home_dir)
         
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
 
-        new_videos = []
-        for vid in all_videos:
+        new_media = []
+        for media_path in all_media:
             try:
-                mtime = os.path.getmtime(vid)
-                cursor.execute("SELECT last_modified FROM indexed_videos WHERE video_path = ?", (vid,))
+                mtime = os.path.getmtime(media_path)
+                cursor.execute("SELECT last_modified FROM indexed_videos WHERE media_path = ?", (media_path,))
                 row = cursor.fetchone()
                 
                 if row is None or row[0] < mtime:
-                    new_videos.append((vid, mtime))
+                    new_media.append((media_path, mtime))
             except OSError:
                 continue
 
-        if not new_videos:
+        if not new_media:
             conn.close()
             return  # Exit silently if database is up-to-date.
 
-        print(f"✨ Found {len(new_videos)} new video(s). Indexing...")
+        print(f"✨ Found {len(new_media)} new media file(s). Indexing...")
 
         # Show indexing process with a simple progress bar
-        for vid_path, mtime in tqdm(new_videos, desc="Processing", unit="video"):
-            cursor.execute("DELETE FROM captions WHERE video_path = ?", (vid_path,))
+        for media_path, mtime in tqdm(new_media, desc="Processing", unit="file"):
+            cursor.execute("DELETE FROM captions WHERE media_path = ?", (media_path,))
             
             try:
-                cap = cv2.VideoCapture(vid_path)
-                if not cap.isOpened():
-                    continue
+                ext = os.path.splitext(media_path)[1].lower()
+                image_extensions = {'.jpg', '.jpeg', '.png', '.webp'}
                 
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                if fps == 0 or fps is None or fps != fps:
-                    fps = 25.0
-                
-                total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                if total_frames <= 0:
-                    cap.release()
-                    continue
+                if ext in image_extensions:
+                    try:
+                        with Image.open(media_path) as img:
+                            img_rgb = img.convert("RGB")
+                            caption = self.generate_caption(img_rgb)
+                            cursor.execute("INSERT INTO captions (media_path, timestamp_ms, caption) VALUES (?, ?, ?)",
+                                           (media_path, 0, caption))
+                    except Exception:
+                        pass
+                else:
+                    cap = cv2.VideoCapture(media_path)
+                    if not cap.isOpened():
+                        continue
+                    
+                    fps = cap.get(cv2.CAP_PROP_FPS)
+                    if fps == 0 or fps is None or fps != fps:
+                        fps = 25.0
+                    
+                    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    if total_frames <= 0:
+                        cap.release()
+                        continue
 
-                duration_ms = (total_frames / fps) * 1000
-                
-                for ms in range(0, int(duration_ms), sample_rate_ms):
-                    cap.set(cv2.CAP_PROP_POS_MSEC, ms)
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
+                    duration_ms = (total_frames / fps) * 1000
                     
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    image = Image.fromarray(frame_rgb)
+                    for ms in range(0, int(duration_ms), sample_rate_ms):
+                        cap.set(cv2.CAP_PROP_POS_MSEC, ms)
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
+                        
+                        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        image = Image.fromarray(frame_rgb)
+                        
+                        caption = self.generate_caption(image)
+                        cursor.execute("INSERT INTO captions (media_path, timestamp_ms, caption) VALUES (?, ?, ?)",
+                                       (media_path, ms, caption))
                     
-                    caption = self.generate_caption(image)
-                    cursor.execute("INSERT INTO captions (video_path, timestamp_ms, caption) VALUES (?, ?, ?)",
-                                   (vid_path, ms, caption))
-                
-                cursor.execute("INSERT OR REPLACE INTO indexed_videos (video_path, last_modified) VALUES (?, ?)",
-                               (vid_path, mtime))
+                    cap.release()
+
+                cursor.execute("INSERT OR REPLACE INTO indexed_videos (media_path, last_modified) VALUES (?, ?)",
+                               (media_path, mtime))
                 conn.commit()
-                cap.release()
             except Exception:
                 pass # Hide error messages to prevent terminal clutter
 
@@ -156,16 +170,16 @@ class BlipSearch:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
-        cursor.execute("SELECT video_path, timestamp_ms, caption FROM captions")
+        cursor.execute("SELECT media_path, timestamp_ms, caption FROM captions")
         results = cursor.fetchall()
         
         matches = []
         query_words = query.lower().split()
         
-        for video_path, timestamp, caption in results:
+        for media_path, timestamp, caption in results:
             score = sum(1 for word in query_words if word in caption.lower())
             if score > 0:
-                matches.append((score, video_path, timestamp, caption))
+                matches.append((score, media_path, timestamp, caption))
         
         conn.close()
         
@@ -176,18 +190,22 @@ class BlipSearch:
         matches.sort(key=lambda x: x[0], reverse=True)
         best_match = matches[0]
         
-        print(f"Video   : {best_match[1]}")
-        print(f"Time    : {best_match[2] // 1000} seconds")
+        print(f"File    : {best_match[1]}")
+        
+        is_image = best_match[1].lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
+        if not is_image:
+            print(f"Time    : {best_match[2] // 1000} seconds")
+            
         print(f"Caption : {best_match[3]}")
         
-        self.open_video(best_match[1])
+        self.open_media(best_match[1])
 
-    def open_video(self, video_path):
-        print("Opening video...")
+    def open_media(self, media_path):
+        print("Opening media...")
         try:
             # Prevent xdg-open from printing its own output to the terminal
             with open(os.devnull, 'w') as devnull:
-                subprocess.Popen(["xdg-open", video_path], stdout=devnull, stderr=devnull)
+                subprocess.Popen(["xdg-open", media_path], stdout=devnull, stderr=devnull)
         except Exception:
             pass
 
@@ -204,7 +222,7 @@ def main():
         return
 
     searcher = BlipSearch()
-    searcher.index_new_videos(sample_rate_ms=args.rate)
+    searcher.index_new_media(sample_rate_ms=args.rate)
     
     query_str = " ".join(args.query)
     searcher.search(query_str)
