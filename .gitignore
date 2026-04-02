@@ -1,0 +1,26 @@
+# Python sanal ortamlar (Sisteme yükleme yaptığın yerler)
+venv/
+env/
+.env/
+
+# Python önbellek ve derlenmiş dosyalar
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Paketleme klasörleri (pip install sonrasında oluşan dosyalar)
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE / Editör ve Sistem dosyaları
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Veritabanı ve loglar (Test sırasında bulunduğun klasörde kaldıysa gitmesin)
+video_index.db
+*.log
