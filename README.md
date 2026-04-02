@@ -1,52 +1,81 @@
+<div align="center">
+  
 # 🔍 Blipsearch
+*Blazing-fast, purely on-device natural language search engine for your local Videos & Photos.*
 
-**Blipsearch** is a blazing-fast, strictly on-device video search engine. Have you ever remembered a specific scene from a local video but had no idea where the file was or what it was named? Simply describe it in natural language!
+![Python Version](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python)
+![License MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+![PyTorch](https://img.shields.io/badge/PyTorch-AI-ee4c2c?style=flat-square&logo=pytorch)
+![Build](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)
+![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-ff69b4?style=flat-square)
+</div>
 
-Blipsearch automatically indexes your videos in the background and uses AI to find the exact frame you are looking for. Once found, it instantly opens the video stream in your default media player. 🎬
+---
 
-## ✨ Features
+### 🎥 Watch it in Action!
+> *Ever remembered a specific scene from a video or a photo but had no idea where the file was? Simply describe it!*
 
-- **100% Offline & Private:** Everything runs purely on your local machine using PyTorch and HuggingFace models. Zero internet connection required.
-- **Natural Language Search:** Uses the `Salesforce/blip-image-captioning-base` artificial intelligence to watch and understand your videos. Just type what happened (e.g., `"a dog chasing a ball"`).
-- **Zero-Config Auto-Discovery:** No need to specify target directories. It automatically scans your device (skipping hidden and system directories for speed) to find and index your latest videos.
-- **Smart Lazy-Loading:** The heavy AI models are only loaded into VRAM when *new* videos are detected. Searching existing videos takes milliseconds with zero GPU usage!
-- **Clean & Simple CLI:** Minimalistic command-line interface. No annoying standard error outputs, HuggingFace telemetry warning spam, or broken progress bars.
+https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.webm
 
-## 🚀 Installation
+*(If the video preview doesn't load smoothly, [click here to download and view](https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.webm))*
 
-Ensure you have Python 3.8+ installed on your system.
+---
 
-1. Clone the repository:
+## ✨ Why Blipsearch?
+
+- 🔒 **100% Offline & Private:** Everything runs strictly on your machine using local PyTorch frameworks. Zero cloud uploads.
+- 🧠 **Natural Language Processing:** Built around `Salesforce/blip-image-captioning-base`. Tell the AI what you remember (`"a dog chasing a ball"`), and it will locate the exact media file.
+- 🖼️ **Videos & Photos Supported:** Not just videos! Blipsearch flawlessly indexes `.png`, `.jpg`, `.mp4`, `.mkv`, and `.webm` files natively across your device in seconds!
+- ⚡ **Zero-Config Auto-Discovery:** No manual folder configuration required. It automatically discovers new media files across your system while intelligently skipping hidden & cached folders.
+- 🔋 **Smart Lazy-Loading:** The heavy AI model is **only** loaded into VRAM when *new* media is found. Standard text searches consume exactly 0% GPU and return in milliseconds!
+
+---
+
+## 🛠️ Technology Stack
+
+Blipsearch leverages state-of-the-art open-source libraries:
+*   **[Transformers (HuggingFace)](https://huggingface.co/)** - For advanced BLIP Vision-Language inference.
+*   **[PyTorch](https://pytorch.org/)** - For extremely fast GPU acceleration (CUDA).
+*   **[OpenCV](https://opencv.org/)** - For rapid and reliable video frame extraction.
+*   **[SQLite](https://sqlite.org/)** - For efficient local caching of generated captions.
+*   **[Tqdm](https://tqdm.github.io/)** - For clean, minimalistic terminal progress logging.
+
+---
+
+## 🚀 Installation & Setup
+
+It's designed to be effortlessly installed. Ensure you have `Python >= 3.8` on your system.
+
+**1. Clone the repository:**
 ```bash
 git clone https://github.com/Keremcm/blipsearch.git
 cd blipsearch
 ```
 
-2. Run the automated installer:
+**2. Run the automated secure installer:**
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
-*(This creates an isolated virtual environment automatically without polluting your OS, and universally ties the `blipsearch` command!)*
+> 💡 *Why `install.sh`? It automatically spins up an isolated virtual environment exclusively for Blipsearch and registers the CLI globally without polluting your Linux/macOS system packages!*
 
-## 💡 Usage
+---
 
-Whenever you want to find a video, open your terminal anywhere and type:
+## 💻 Usage 
+
+Simply type the command anywhere on your terminal:
 
 ```bash
-blipsearch "a car crashed on the highway"
+blipsearch "car crashed on the highway"
 ```
 
-**What it does behind the scenes:**
-1. It swiftly scans your `~` (Home) directory for videos.
-2. If it encounters a video it hasn’t seen before, it analyzes it extracting natural descriptions.
-3. Finds the highest matching caption and opens the winning video with `xdg-open` on Linux.
+### What happens under the hood?
+1. 🔍 Scans your `~` (Home) directory instantly for any media that hasn't been indexed yet.
+2. 🤖 If new files are found, it safely wakes up the AI, analyzes the content, and saves descriptions.
+3. 🎯 Matches your input sentence against the database and executes your default media player at the **exact second** the event occurred!
 
-## 🛠 Prerequisites
+---
 
-- Python >= 3.11
-- Storage: Your captions are extremely lightweight and saved efficiently to `~/.blipsearch/video_index.db`.
-- CUDA (Optional but Highly Recommended): The program will automatically switch to GPU processing for blazingly fast indexing if an Nvidia GPU is detected on your system.
-
-## License
-MIT License. Feel free to modify, distribute, and enhance it.
+<div align="center">
+<i>Built with ❤️ by Keremcm & Open Source. Licensed under MIT.</i>
+</div>
