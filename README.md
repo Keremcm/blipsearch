@@ -19,7 +19,7 @@
 ### 🎥 Watch it in Action!
 
 https://github.com/user-attachments/assets/4fc1df69-c1de-4f90-b8b3-fadeb11952d1
-![Blipsearch Demo](https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.mp4)
+
 
 ---
 
