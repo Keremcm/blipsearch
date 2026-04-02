@@ -12,12 +12,9 @@
 
 ---
 
-### 🎥 Watch it in Action!
-> *Ever remembered a specific scene from a video or a photo but had no idea where the file was? Simply describe it!*
+<video src="https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.mp4" autoplay loop muted controls width="100%"></video>
 
-<video src="https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.webm" autoplay loop muted controls width="100%"></video>
-
-*(If the video preview doesn't load smoothly, [click here to download and view](https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.webm))*
+*(If the video preview doesn't load smoothly, [click here to download and view](https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.mp4))*
 
 ---
 
