@@ -1,3 +1,7 @@
+
+
+
+
 <div align="center">
   
 # 🔍 Blipsearch
@@ -14,7 +18,8 @@
 
 ### 🎥 Watch it in Action!
 
-![Blipsearch Demo](https://github.com/Keremcm/blipsearch/raw/main/videos/blipsearch_test.mp4)
+https://github.com/user-attachments/assets/4fc1df69-c1de-4f90-b8b3-fadeb11952d1
+
 
 ---
 

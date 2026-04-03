@@ -9,11 +9,15 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
 os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
+os.environ['HF_HUB_OFFLINE'] = '1' # Force offline to prevent Hub check warnings once downloaded
 os.environ['OPENCV_LOG_LEVEL'] = 'FATAL'
 os.environ['OPENCV_FFMPEG_LOGLEVEL'] = '-8'
 
+import logging
 logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+logging.getLogger("datasets").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 import cv2
 import torch
