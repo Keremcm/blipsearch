@@ -7,7 +7,7 @@
 # 🔍 Blipsearch
 *Blazing-fast, purely on-device natural language search engine for your local Videos & Photos.*
 
-![Python Version](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python)
+![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square&logo=python)
 ![License MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![PyTorch](https://img.shields.io/badge/PyTorch-AI-ee4c2c?style=flat-square&logo=pytorch)
 ![Build](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)
@@ -46,7 +46,7 @@ Blipsearch leverages state-of-the-art open-source libraries:
 
 ## 🚀 Installation & Setup
 
-It's designed to be effortlessly installed. Ensure you have `Python >= 3.8` on your system.
+It's designed to be effortlessly installed. Ensure you have `Python >= 3.11` on your system.
 
 **1. Clone the repository:**
 ```bash
