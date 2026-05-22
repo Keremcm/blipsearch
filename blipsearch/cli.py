@@ -61,7 +61,7 @@ def find_media(root_dir):
     media_extensions = {'.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.jpg', '.jpeg', '.png', '.webp'}
     media_paths = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
-        dirnames[:] = [d for d in dirnames if not d.startswith('.') and d not in ['node_modules', 'venv', 'env', '__pycache__']]
+        dirnames[:] = [d for d in dirnames if not d.startswith('.') and d not in ['node_modules', 'venv', 'env', '__pycache__', 'go']]
         for f in filenames:
             ext = os.path.splitext(f)[1].lower()
             if ext in media_extensions:
@@ -240,7 +240,9 @@ class BlipSearch:
                     # Internal file deleted, skip it
                     continue
             
-            score = sum(1 for word in query_words if word in caption.lower())
+            # Match full words only, not substrings
+            caption_words = caption.lower().split()
+            score = sum(1 for word in query_words if word in caption_words)
             if score > 0:
                 matches.append((score, media_path, timestamp, caption))
         
