@@ -69,12 +69,41 @@ def find_media(root_dir):
     return media_paths
 
 class BlipSearch:
-    def __init__(self, model_id="Salesforce/blip-image-captioning-base"):
+    def __init__(self, model_id="Salesforce/blip-image-captioning-base", include_external=False):
         self.model_id = model_id
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.processor = None
         self.model = None
+        self.include_external = include_external
         init_db()
+
+    def _external_disks_available(self):
+        """Check if any external drive is mounted."""
+        external_dirs = ["/mnt", "/media"]
+        for ext_dir in external_dirs:
+            if os.path.exists(ext_dir) and os.listdir(ext_dir):
+                return True
+        return False
+
+    def _cleanup_deleted_files(self):
+        """Remove entries for deleted files from database."""
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT DISTINCT media_path FROM indexed_videos")
+        all_indexed = cursor.fetchall()
+        
+        deleted_count = 0
+        for (media_path,) in all_indexed:
+            if not os.path.exists(media_path):
+                cursor.execute("DELETE FROM captions WHERE media_path = ?", (media_path,))
+                cursor.execute("DELETE FROM indexed_videos WHERE media_path = ?", (media_path,))
+                deleted_count += 1
+        
+        if deleted_count > 0:
+            conn.commit()
+        
+        conn.close()
 
     def _load_model(self):
         if self.model is None:
@@ -89,10 +118,13 @@ class BlipSearch:
         out = self.model.generate(**inputs, max_new_tokens=50) 
         return self.processor.decode(out[0], skip_special_tokens=True)
 
-    def index_new_media(self, sample_rate_ms=2000, include_external=False):
+    def index_new_media(self, sample_rate_ms=2000):
+        # Clean up deleted files first
+        self._cleanup_deleted_files()
+        
         search_dirs = [os.path.expanduser("~")]
         
-        if include_external:
+        if self.include_external:
             # Add common mount points for external drives
             external_dirs = ["/mnt", "/media"]
             for ext_dir in external_dirs:
@@ -192,8 +224,22 @@ class BlipSearch:
         
         matches = []
         query_words = query.lower().split()
+        external_available = self._external_disks_available()
         
         for media_path, timestamp, caption in results:
+            # Skip results from external drives if not explicitly indexed there
+            if not self.include_external and (media_path.startswith("/mnt") or media_path.startswith("/media")):
+                continue
+            
+            # Skip if file doesn't exist and external disk isn't available
+            if not os.path.exists(media_path):
+                if media_path.startswith("/mnt") or media_path.startswith("/media"):
+                    if not external_available:
+                        continue
+                else:
+                    # Internal file deleted, skip it
+                    continue
+            
             score = sum(1 for word in query_words if word in caption.lower())
             if score > 0:
                 matches.append((score, media_path, timestamp, caption))
@@ -206,6 +252,11 @@ class BlipSearch:
 
         matches.sort(key=lambda x: x[0], reverse=True)
         best_match = matches[0]
+        
+        # Final check: does the file exist?
+        if not os.path.exists(best_match[1]):
+            print("File found in database but no longer available.")
+            return
         
         print(f"File    : {best_match[1]}")
         
@@ -240,8 +291,8 @@ def main():
         print("Options: --external (search external drives), --rate (frame sampling rate in ms)")
         return
 
-    searcher = BlipSearch()
-    searcher.index_new_media(sample_rate_ms=args.rate, include_external=args.external)
+    searcher = BlipSearch(include_external=args.external)
+    searcher.index_new_media(sample_rate_ms=args.rate)
     
     query_str = " ".join(args.query)
     searcher.search(query_str)
