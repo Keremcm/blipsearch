@@ -89,9 +89,22 @@ class BlipSearch:
         out = self.model.generate(**inputs, max_new_tokens=50) 
         return self.processor.decode(out[0], skip_special_tokens=True)
 
-    def index_new_media(self, sample_rate_ms=2000):
-        home_dir = os.path.expanduser("~")
-        all_media = find_media(home_dir)
+    def index_new_media(self, sample_rate_ms=2000, include_external=False):
+        search_dirs = [os.path.expanduser("~")]
+        
+        if include_external:
+            # Add common mount points for external drives
+            external_dirs = ["/mnt", "/media"]
+            for ext_dir in external_dirs:
+                if os.path.exists(ext_dir):
+                    search_dirs.append(ext_dir)
+        
+        all_media = []
+        for search_dir in search_dirs:
+            try:
+                all_media.extend(find_media(search_dir))
+            except PermissionError:
+                continue
         
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -216,6 +229,7 @@ class BlipSearch:
 def main():
     parser = argparse.ArgumentParser(description="BLIP-based on-device natural language video search engine")
     parser.add_argument("query", nargs="*", help="Your search query")
+    parser.add_argument("--external", action="store_true", help="Also search external drives (/mnt, /media)")
     # Hide --rate parameter from help output for simplicity
     parser.add_argument("--rate", type=int, default=2000, help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -223,10 +237,11 @@ def main():
     # If user hasn't provided a query, exit silently without printing full help
     if not args.query:
         print("Usage: blipsearch <search query>")
+        print("Options: --external (search external drives), --rate (frame sampling rate in ms)")
         return
 
     searcher = BlipSearch()
-    searcher.index_new_media(sample_rate_ms=args.rate)
+    searcher.index_new_media(sample_rate_ms=args.rate, include_external=args.external)
     
     query_str = " ".join(args.query)
     searcher.search(query_str)
