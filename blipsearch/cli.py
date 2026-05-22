@@ -105,6 +105,17 @@ class BlipSearch:
         
         conn.close()
 
+    def _cleanup_external_files(self):
+        """Remove entries for external files when --external is not used."""
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM captions WHERE media_path LIKE '/mnt/%' OR media_path LIKE '/media/%'")
+        cursor.execute("DELETE FROM indexed_videos WHERE media_path LIKE '/mnt/%' OR media_path LIKE '/media/%'")
+        
+        conn.commit()
+        conn.close()
+
     def _load_model(self):
         if self.model is None:
             # Hide unnecessary HuggingFace logs at stdout level
@@ -121,6 +132,10 @@ class BlipSearch:
     def index_new_media(self, sample_rate_ms=2000):
         # Clean up deleted files first
         self._cleanup_deleted_files()
+        
+        # If not including external, remove external files from DB
+        if not self.include_external:
+            self._cleanup_external_files()
         
         search_dirs = [os.path.expanduser("~")]
         
