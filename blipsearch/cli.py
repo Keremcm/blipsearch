@@ -141,7 +141,7 @@ class BlipSearch:
         
         if self.include_external:
             # Add common mount points for external drives
-            external_dirs = ["/mnt", "/media"]
+            external_dirs = ["/mnt", "/media", "/run/media"]
             for ext_dir in external_dirs:
                 if os.path.exists(ext_dir):
                     search_dirs.append(ext_dir)
@@ -149,7 +149,10 @@ class BlipSearch:
         all_media = []
         for search_dir in search_dirs:
             try:
-                all_media.extend(find_media(search_dir))
+                found = find_media(search_dir)
+                all_media.extend(found)
+                if found and self.include_external and (search_dir.startswith("/mnt") or search_dir.startswith("/media") or search_dir.startswith("/run")):
+                    print(f"📁 Found {len(found)} file(s) in {search_dir}")
             except PermissionError:
                 continue
         
