@@ -1,4 +1,5 @@
 # Python sanal ortamlar (Sisteme yükleme yaptığın yerler)
+brag-output
 venv/
 env/
 .env/
