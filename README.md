@@ -28,7 +28,7 @@ https://github.com/user-attachments/assets/4fc1df69-c1de-4f90-b8b3-fadeb11952d1
 - 🔒 **100% Offline & Private:** Everything runs strictly on your machine using local PyTorch frameworks. Zero cloud uploads.
 - 🧠 **Natural Language Processing:** Built around `Salesforce/blip-image-captioning-base`. Tell the AI what you remember (`"a dog chasing a ball"`), and it will locate the exact media file.
 - 🖼️ **Videos & Photos Supported:** Not just videos! Blipsearch flawlessly indexes `.png`, `.jpg`, `.jpeg`, `.webp`, `.mp4`, `.mkv`, and `.webm` files natively across your device.
-- ⚡ **Zero-Config Auto-Discovery:** No manual folder configuration required. It automatically discovers new media files across your home directory while intelligently skipping hidden, cached & project (`repos`, `node_modules`, `Mods`) folders.
+- ⚡ **Zero-Config Auto-Discovery:** No manual folder configuration required. It automatically discovers new media files across your home directory while intelligently skipping hidden, cached, project and asset (`repos`, `node_modules`, `Mods`, `Android`, `Games`, ...) folders, plus icon-sized images. Add your own folder names (one per line) to `~/.blipsearch/ignore.txt`. Files that fail to index are not retried until they change, or until you run with `--retry-failed`.
 - 🔋 **Smart Lazy-Loading:** The heavy AI model is **only** loaded into VRAM when *new* media is found. Standard text searches consume exactly 0% GPU and return in milliseconds!
 
 > ⚠️ **Note:** the first run downloads the ~1.4 GB BLIP model automatically (needs internet once) and indexes every photo/video it finds — on CPU this can take a while. Everything after that is fully offline and instant.
