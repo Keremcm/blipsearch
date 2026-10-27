@@ -73,9 +73,19 @@ Simply type the command anywhere on your terminal:
 blipsearch "car crashed on the highway"
 ```
 
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--captions N` | Number of differently worded captions generated per image/frame while indexing (default `3`). More captions find more phrasings (`man`, `person`, `cyclist`), but indexing takes longer. Use `--captions 1` for the fastest indexing. |
+| `--external` | Also index and search external drives (`/mnt`, `/media`, `/run/media`). |
+| `--retry-failed` | Retry files that failed to index earlier. |
+
+`--captions` only affects files indexed from now on; delete `~/.blipsearch/video_index.db` to re-index everything with a new value.
+
 ### What happens under the hood?
 1. 🔍 Scans your `~` (Home) directory instantly for any media that hasn't been indexed yet.
-2. 🤖 If new files are found, it safely wakes up the AI, analyzes the content, and saves descriptions.
+2. 🤖 If new files are found, it safely wakes up the AI, analyzes the content, and saves several differently worded descriptions per image/frame.
 3. 🎯 Matches your input sentence against the database and executes your default media player at the **exact second** the event occurred!
 
 ---
