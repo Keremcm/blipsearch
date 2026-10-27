@@ -166,8 +166,9 @@ def find_media(root_dir):
     return media_paths
 
 class BlipSearch:
-    def __init__(self, model_id="Salesforce/blip-image-captioning-base", include_external=False):
+    def __init__(self, model_id="Salesforce/blip-image-captioning-base", include_external=False, num_captions=3):
         self.model_id = model_id
+        self.num_captions = max(1, num_captions)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.processor = None
         self.model = None
@@ -216,12 +217,25 @@ class BlipSearch:
                     print("   model otomatik olarak indirilir (~1.4GB). Bir kez indikten sonra tamamen çevrimdışı çalışır.")
                     raise
 
-    def generate_caption(self, image):
+    def generate_captions(self, image):
+        """Differently worded captions of one image: a greedy one plus sampled variants."""
         self._load_model()
         inputs = self.processor(image, return_tensors="pt").to(self.device)
         # Using max_new_tokens to prevent warnings
-        out = self.model.generate(**inputs, max_new_tokens=50) 
-        return self.processor.decode(out[0], skip_special_tokens=True)
+        out = self.model.generate(**inputs, max_new_tokens=50)
+        captions = [self.processor.decode(out[0], skip_special_tokens=True)]
+        if self.num_captions > 1:
+            out = self.model.generate(**inputs, max_new_tokens=50, do_sample=True, top_p=0.9, temperature=0.7,
+                                      num_return_sequences=self.num_captions - 1)
+            for seq in out:
+                caption = self.processor.decode(seq, skip_special_tokens=True)
+                if caption not in captions:
+                    captions.append(caption)
+        return captions
+
+    def _store_captions(self, cursor, media_path, timestamp_ms, captions):
+        cursor.executemany("INSERT INTO captions (media_path, timestamp_ms, caption) VALUES (?, ?, ?)",
+                           [(media_path, timestamp_ms, c) for c in captions])
 
     def index_new_media(self, sample_rate_ms=2000, retry_failed=False):
         self._cleanup_index()
@@ -295,9 +309,7 @@ class BlipSearch:
                         img = ImageOps.exif_transpose(img)  # phone photos store rotation in EXIF
                         if min(img.size) < MIN_IMAGE_SIDE:
                             raise SkipMedia("küçük görsel")
-                        caption = self.generate_caption(img.convert("RGB"))
-                        cursor.execute("INSERT INTO captions (media_path, timestamp_ms, caption) VALUES (?, ?, ?)",
-                                       (media_path, 0, caption))
+                        self._store_captions(cursor, media_path, 0, self.generate_captions(img.convert("RGB")))
                 else:
                     cap = cv2.VideoCapture(media_path)
                     if not cap.isOpened():
@@ -324,9 +336,7 @@ class BlipSearch:
                         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                         image = Image.fromarray(frame_rgb)
                         
-                        caption = self.generate_caption(image)
-                        cursor.execute("INSERT INTO captions (media_path, timestamp_ms, caption) VALUES (?, ?, ?)",
-                                       (media_path, ms, caption))
+                        self._store_captions(cursor, media_path, ms, self.generate_captions(image))
                         frame_count += 1
                     
                     cap.release()
@@ -371,15 +381,21 @@ class BlipSearch:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
 
-        # Best-scoring caption per file
-        best = {}
+        # All captions of one frame count together; best-scoring frame per file wins
+        frames = {}
         for media_path, timestamp, caption in cursor.execute("SELECT media_path, timestamp_ms, caption FROM captions"):
             # Skip results from external drives if not explicitly indexed there
             if not self.include_external and _is_external(media_path):
                 continue
-            score = len(query_words & _keywords(caption))
+            frames.setdefault((media_path, timestamp), []).append(caption)
+
+        best = {}
+        for (media_path, timestamp), captions in frames.items():
+            words = set().union(*(_keywords(c) for c in captions))
+            score = len(query_words & words)
             if score > 0 and (media_path not in best or score > best[media_path][0]):
-                best[media_path] = (score, media_path, timestamp, caption)
+                shown = max(captions, key=lambda c: len(query_words & _keywords(c)))
+                best[media_path] = (score, media_path, timestamp, shown)
 
         conn.close()
 
@@ -418,6 +434,8 @@ def main():
     parser.add_argument("query", nargs="*", help="Your search query")
     parser.add_argument("--external", action="store_true", help="Also search external drives (/mnt, /media)")
     # Hide --rate parameter from help output for simplicity
+    parser.add_argument("--captions", type=int, default=3, metavar="N",
+                        help="Captions generated per image/frame when indexing (default 3; 1 is fastest)")
     parser.add_argument("--retry-failed", action="store_true", help="Retry files that failed to index earlier")
     parser.add_argument("--rate", type=int, default=2000, help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -425,10 +443,10 @@ def main():
     # If user hasn't provided a query, exit silently without printing full help
     if not args.query:
         print("Usage: blipsearch <search query>")
-        print("Options: --external (search external drives), --retry-failed, --rate (frame sampling rate in ms)")
+        print("Options: --external (search external drives), --captions N, --retry-failed, --rate (frame sampling rate in ms)")
         return
 
-    searcher = BlipSearch(include_external=args.external)
+    searcher = BlipSearch(include_external=args.external, num_captions=args.captions)
     searcher.index_new_media(sample_rate_ms=args.rate, retry_failed=args.retry_failed)
     
     query_str = " ".join(args.query)
